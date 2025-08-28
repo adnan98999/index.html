@@ -211,11 +211,28 @@
             background: #ff5555;
         }
         
+        .error-message {
+            text-align: center;
+            padding: 20px;
+            color: #ff5555;
+            background: rgba(255, 85, 85, 0.1);
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
         footer {
             text-align: center;
             margin-top: 40px;
             color: #a0a0a0;
             font-size: 0.9rem;
+        }
+        
+        .info-box {
+            background: rgba(0, 201, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
         }
     </style>
 </head>
@@ -225,6 +242,10 @@
             <h1>Crypto Trading Signals Dashboard</h1>
             <p class="subtitle">Real-time EMA, RSI & Volume indicators with buy/sell signals</p>
         </header>
+        
+        <div class="info-box">
+            <p>Note: This dashboard uses a CORS proxy to work on GitHub Pages. Data loading may be slower than direct API calls.</p>
+        </div>
         
         <div class="dashboard">
             <div class="chart-container">
@@ -248,6 +269,10 @@
                     <div class="loading">
                         Loading chart data...
                     </div>
+                </div>
+                
+                <div id="error-message" class="error-message" style="display: none;">
+                    Error loading data. Please check your connection or try again later.
                 </div>
                 
                 <div class="indicators">
@@ -282,7 +307,7 @@
         </div>
         
         <footer>
-            <p>Crypto Signals Dashboard &copy; 2023 - Real-time data from Binance API</p>
+            <p>Crypto Signals Dashboard &copy; 2023 - Data from Binance API via CORS proxy</p>
         </footer>
     </div>
 
@@ -303,11 +328,18 @@
         let currentCandles = [];
         let alerts = [];
         
+        // CORS Proxy URL - using a public CORS proxy
+        const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
+        // Alternative proxies if the above doesn't work:
+        // const CORS_PROXY = "https://api.codetabs.com/v1/proxy?quest=";
+        // const CORS_PROXY = "https://corsproxy.io/?";
+        
         // DOM Elements
         const rsiValue = document.getElementById('rsi-value');
         const emaValue = document.getElementById('ema-value');
         const volumeValue = document.getElementById('volume-value');
         const alertsList = document.getElementById('alerts-list');
+        const errorMessage = document.getElementById('error-message');
         
         // Initialize chart
         function initChart() {
@@ -385,11 +417,45 @@
             fetchData();
         }
         
+        // Fetch with CORS proxy fallback
+        async function fetchWithCorsProxy(url) {
+            try {
+                // First try direct fetch
+                const response = await fetch(url);
+                if (response.ok) {
+                    return await response.json();
+                }
+                throw new Error('Direct fetch failed');
+            } catch (error) {
+                console.log('Direct fetch failed, trying CORS proxy');
+                try {
+                    // If direct fetch fails, try with CORS proxy
+                    const proxyUrl = CORS_PROXY + url;
+                    const response = await fetch(proxyUrl, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('CORS proxy also failed');
+                    }
+                    
+                    return await response.json();
+                } catch (proxyError) {
+                    console.error('CORS proxy also failed:', proxyError);
+                    errorMessage.style.display = 'block';
+                    throw new Error('Both direct and proxy requests failed');
+                }
+            }
+        }
+        
         // Fetch top coins from Binance
         async function fetchTopCoins() {
             try {
-                const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
-                const data = await res.json();
+                const url = 'https://api.binance.com/api/v3/ticker/24hr';
+                const data = await fetchWithCorsProxy(url);
+                
                 const top = data
                     .filter(item => item.symbol.endsWith('USDT'))
                     .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
@@ -400,6 +466,8 @@
                 select.innerHTML = coins.map(c => `<option value="${c}" ${c === selectedCoin ? 'selected' : ''}>${c}</option>`).join('');
             } catch (error) {
                 console.error('Error fetching coins:', error);
+                errorMessage.textContent = 'Error loading coin data. Please check your connection.';
+                errorMessage.style.display = 'block';
             }
         }
         
@@ -473,10 +541,11 @@
         // Fetch candlestick data
         async function fetchData() {
             try {
+                errorMessage.style.display = 'none';
+                
                 const binInterval = intervalTime.replace('m', '');
                 const url = `https://api.binance.com/api/v3/klines?symbol=${selectedCoin}&interval=${intervalTime}&limit=100`;
-                const res = await fetch(url);
-                const data = await res.json();
+                const data = await fetchWithCorsProxy(url);
                 
                 currentCandles = data.map(d => ({
                     time: d[0] / 1000,
@@ -561,6 +630,8 @@
                 }
             } catch (error) {
                 console.error('Error fetching data:', error);
+                errorMessage.textContent = 'Error loading chart data. Please check your connection.';
+                errorMessage.style.display = 'block';
             }
         }
         
