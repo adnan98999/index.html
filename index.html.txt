@@ -1,129 +1,627 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Crypto Signals Dashboard</title>
-  <style>
-    body { font-family: Arial; margin: 0; padding: 0; background: #1e1e1e; color: #fff; }
-    #controls { padding: 10px; text-align: center; background: #111; }
-    button { margin: 0 5px; padding: 5px 10px; }
-    #chart { width: 100%; height: 600px; }
-    #coin-select { padding: 5px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Trading Signals Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00c9ff, #92fe9d);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .subtitle {
+            color: #a0a0a0;
+            font-size: 1.1rem;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .chart-container {
+            background: rgba(19, 23, 34, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            grid-column: 1 / -1;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .interval-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover, button.active {
+            background: linear-gradient(90deg, #00c9ff, #92fe9d);
+            color: #000;
+        }
+        
+        select {
+            padding: 10px 15px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        #chart {
+            width: 100%;
+            height: 500px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .indicators {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .indicator {
+            background: rgba(19, 23, 34, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 150px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .indicator h3 {
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: #a0a0a0;
+        }
+        
+        .indicator-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .rsi { color: #00c9ff; }
+        .ema { color: #ffcc00; }
+        .volume { color: #ff55ff; }
+        
+        .alerts-container {
+            background: rgba(19, 23, 34, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .alerts-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #00c9ff;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 5px solid #00c9ff;
+        }
+        
+        .alert.buy {
+            border-left-color: #00ff8c;
+        }
+        
+        .alert.sell {
+            border-left-color: #ff5555;
+        }
+        
+        .alert-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .alert-message {
+            font-weight: bold;
+        }
+        
+        .alert-time {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #a0a0a0;
+        }
+        
+        .signal-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .signal-dot.buy {
+            background: #00ff8c;
+        }
+        
+        .signal-dot.sell {
+            background: #ff5555;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #a0a0a0;
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <header>
+            <h1>Crypto Trading Signals Dashboard</h1>
+            <p class="subtitle">Real-time EMA, RSI & Volume indicators with buy/sell signals</p>
+        </header>
+        
+        <div class="dashboard">
+            <div class="chart-container">
+                <div class="controls">
+                    <div class="interval-buttons">
+                        <button class="active" onclick="setIntervalTime('5m')">5m</button>
+                        <button onclick="setIntervalTime('15m')">15m</button>
+                        <button onclick="setIntervalTime('30m')">30m</button>
+                    </div>
+                    
+                    <select id="coin-select" onchange="changeCoin(this.value)">
+                        <option value="BTCUSDT">BTC/USDT</option>
+                        <option value="ETHUSDT">ETH/USDT</option>
+                        <option value="BNBUSDT">BNB/USDT</option>
+                        <option value="SOLUSDT">SOL/USDT</option>
+                        <option value="XRPUSDT">XRP/USDT</option>
+                    </select>
+                </div>
+                
+                <div id="chart">
+                    <div class="loading">
+                        Loading chart data...
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <div class="indicator">
+                        <h3>RSI (14)</h3>
+                        <div id="rsi-value" class="indicator-value rsi">--</div>
+                    </div>
+                    
+                    <div class="indicator">
+                        <h3>EMA (20)</h3>
+                        <div id="ema-value" class="indicator-value ema">--</div>
+                    </div>
+                    
+                    <div class="indicator">
+                        <h3>Volume 24h</h3>
+                        <div id="volume-value" class="indicator-value volume">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alerts-container">
+                <h2 class="alerts-title">Trading Signals</h2>
+                <div id="alerts-list">
+                    <div class="alert">
+                        <div class="alert-content">
+                            <div class="alert-message">Waiting for signals...</div>
+                            <div class="alert-time"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Crypto Signals Dashboard &copy; 2023 - Real-time data from Binance API</p>
+        </footer>
+    </div>
 
-<div id="controls">
-  Interval:
-  <button onclick="setIntervalTime('5m')">5m</button>
-  <button onclick="setIntervalTime('15m')">15m</button>
-  <button onclick="setIntervalTime('30m')">30m</button>
-  Select Coin:
-  <select id="coin-select" onchange="changeCoin(this.value)"></select>
-</div>
-<div id="chart"></div>
-
-<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
-<script>
-  const chart = LightweightCharts.createChart(document.getElementById('chart'), {
-    width: window.innerWidth,
-    height: 600,
-    layout: { backgroundColor: '#1e1e1e', textColor: '#fff' },
-    grid: { vertLines: { color: '#333' }, horzLines: { color: '#333' } },
-    rightPriceScale: { borderColor: '#555' },
-    timeScale: { borderColor: '#555' }
-  });
-
-  const candleSeries = chart.addCandlestickSeries();
-  const buySellSeries = chart.addScatterSeries({ color: 'red', shape: 'arrowUp' });
-
-  let coins = [];
-  let selectedCoin = '';
-  let intervalTime = '5m';
-
-  // Fetch top 20 coins from Binance
-  async function fetchTopCoins() {
-    const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
-    const data = await res.json();
-    const top = data.sort((a,b)=>parseFloat(b.quoteVolume)-parseFloat(a.quoteVolume)).slice(0,20);
-    coins = top.map(c => c.symbol);
-    const select = document.getElementById('coin-select');
-    select.innerHTML = coins.map(c => `<option value="${c}">${c}</option>`).join('');
-    selectedCoin = coins[0];
-    fetchData();
-  }
-
-  function setIntervalTime(interval) {
-    intervalTime = interval;
-    fetchData();
-  }
-
-  function changeCoin(coin) {
-    selectedCoin = coin;
-    fetchData();
-  }
-
-  // Utility functions for indicators
-  function calculateEMA(values, period) {
-    let k = 2/(period+1);
-    let ema = [values[0]];
-    for(let i=1;i<values.length;i++){
-      ema.push(values[i]*k + ema[i-1]*(1-k));
-    }
-    return ema;
-  }
-
-  function calculateRSI(values, period=14){
-    let deltas = [];
-    for(let i=1;i<values.length;i++) deltas.push(values[i]-values[i-1]);
-    let seed = deltas.slice(0,period);
-    let up = seed.filter(v=>v>0).reduce((a,b)=>a+b,0)/period;
-    let down = -seed.filter(v=>v<0).reduce((a,b)=>a+b,0)/period;
-    let rs = up/down;
-    let rsi = [100-(100/(1+rs))];
-    for(let i=period;i<deltas.length;i++){
-      let delta = deltas[i];
-      up = (up*(period-1)+Math.max(delta,0))/period;
-      down = (down*(period-1)+Math.max(-delta,0))/period;
-      rs = up/down;
-      rsi.push(100-(100/(1+rs)));
-    }
-    while(rsi.length<values.length) rsi.unshift(rsi[0]);
-    return rsi;
-  }
-
-  // Fetch candlestick data
-  async function fetchData() {
-    const binInterval = intervalTime.replace('m','');
-    const url = `https://api.binance.com/api/v3/klines?symbol=${selectedCoin}&interval=${intervalTime}&limit=100`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const candles = data.map(d=>({
-      time: d[0]/1000,
-      open: parseFloat(d[1]),
-      high: parseFloat(d[2]),
-      low: parseFloat(d[3]),
-      close: parseFloat(d[4]),
-      volume: parseFloat(d[5])
-    }));
-
-    candleSeries.setData(candles);
-
-    // Indicators
-    const closes = candles.map(c=>c.close);
-    const ema20 = calculateEMA(closes, 20);
-    const rsi = calculateRSI(closes);
-    const signals = [];
-    for(let i=1;i<closes.length;i++){
-      if(closes[i] > ema20[i] && rsi[i]<30) signals.push({ time: candles[i].time, value: candles[i].low, shape:'arrowUp', color:'lime' });
-      if(closes[i] < ema20[i] && rsi[i]>70) signals.push({ time: candles[i].time, value: candles[i].high, shape:'arrowDown', color:'red' });
-    }
-    buySellSeries.setData(signals);
-  }
-
-  fetchTopCoins();
-
-  window.addEventListener('resize', () => chart.applyOptions({ width: window.innerWidth }));
-</script>
+    <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+    <script>
+        // Chart initialization
+        let chart;
+        let candleSeries;
+        let volumeSeries;
+        let buySeries;
+        let sellSeries;
+        let emaSeries;
+        
+        // Variables
+        let coins = [];
+        let selectedCoin = 'BTCUSDT';
+        let intervalTime = '5m';
+        let currentCandles = [];
+        let alerts = [];
+        
+        // DOM Elements
+        const rsiValue = document.getElementById('rsi-value');
+        const emaValue = document.getElementById('ema-value');
+        const volumeValue = document.getElementById('volume-value');
+        const alertsList = document.getElementById('alerts-list');
+        
+        // Initialize chart
+        function initChart() {
+            const chartContainer = document.getElementById('chart');
+            chartContainer.innerHTML = '';
+            
+            chart = LightweightCharts.createChart(chartContainer, {
+                width: chartContainer.clientWidth,
+                height: 500,
+                layout: {
+                    backgroundColor: '#131722',
+                    textColor: '#d9d9d9',
+                },
+                grid: {
+                    vertLines: {
+                        color: 'rgba(42, 46, 57, 0.5)',
+                    },
+                    horzLines: {
+                        color: 'rgba(42, 46, 57, 0.5)',
+                    },
+                },
+                rightPriceScale: {
+                    borderColor: 'rgba(197, 203, 206, 0.8)',
+                },
+                timeScale: {
+                    borderColor: 'rgba(197, 203, 206, 0.8)',
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+            });
+            
+            candleSeries = chart.addCandlestickSeries({
+                upColor: '#00ff8c',
+                downColor: '#ff5555',
+                borderDownColor: '#ff5555',
+                borderUpColor: '#00ff8c',
+                wickDownColor: '#ff5555',
+                wickUpColor: '#00ff8c',
+            });
+            
+            volumeSeries = chart.addHistogramSeries({
+                color: '#26a69a',
+                priceFormat: {
+                    type: 'volume',
+                },
+                priceScaleId: '',
+                scaleMargins: {
+                    top: 0.8,
+                    bottom: 0,
+                },
+            });
+            
+            buySeries = chart.addScatterSeries({
+                color: '#00ff8c',
+                shape: 'arrowUp',
+                size: 15,
+            });
+            
+            sellSeries = chart.addScatterSeries({
+                color: '#ff5555',
+                shape: 'arrowDown',
+                size: 15,
+            });
+            
+            emaSeries = chart.addLineSeries({
+                color: '#ffcc00',
+                lineWidth: 2,
+                lineStyle: 0,
+            });
+            
+            // Fetch data after chart initialization
+            fetchData();
+        }
+        
+        // Fetch top coins from Binance
+        async function fetchTopCoins() {
+            try {
+                const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+                const data = await res.json();
+                const top = data
+                    .filter(item => item.symbol.endsWith('USDT'))
+                    .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+                    .slice(0, 20);
+                    
+                coins = top.map(c => c.symbol);
+                const select = document.getElementById('coin-select');
+                select.innerHTML = coins.map(c => `<option value="${c}" ${c === selectedCoin ? 'selected' : ''}>${c}</option>`).join('');
+            } catch (error) {
+                console.error('Error fetching coins:', error);
+            }
+        }
+        
+        function setIntervalTime(interval) {
+            intervalTime = interval;
+            
+            // Update button states
+            document.querySelectorAll('.interval-buttons button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            fetchData();
+        }
+        
+        function changeCoin(coin) {
+            selectedCoin = coin;
+            fetchData();
+        }
+        
+        // Utility functions for indicators
+        function calculateEMA(values, period) {
+            if (values.length < period) return Array(values.length).fill(null);
+            
+            let k = 2 / (period + 1);
+            let ema = [values[0]];
+            
+            for (let i = 1; i < values.length; i++) {
+                ema.push(values[i] * k + ema[i - 1] * (1 - k));
+            }
+            
+            return ema;
+        }
+        
+        function calculateRSI(values, period = 14) {
+            if (values.length < period + 1) return Array(values.length).fill(null);
+            
+            let gains = [];
+            let losses = [];
+            
+            // Calculate price changes
+            for (let i = 1; i < values.length; i++) {
+                const change = values[i] - values[i - 1];
+                gains.push(change > 0 ? change : 0);
+                losses.push(change < 0 ? Math.abs(change) : 0);
+            }
+            
+            // Calculate initial averages
+            let avgGain = gains.slice(0, period).reduce((sum, gain) => sum + gain, 0) / period;
+            let avgLoss = losses.slice(0, period).reduce((sum, loss) => sum + loss, 0) / period;
+            
+            let rsi = [100 - (100 / (1 + (avgGain / (avgLoss || 0.001))))];
+            
+            // Calculate subsequent values
+            for (let i = period; i < gains.length; i++) {
+                avgGain = ((avgGain * (period - 1)) + gains[i]) / period;
+                avgLoss = ((avgLoss * (period - 1)) + losses[i]) / period;
+                
+                const rs = avgGain / (avgLoss || 0.001);
+                rsi.push(100 - (100 / (1 + rs)));
+            }
+            
+            // Pad beginning with nulls
+            while (rsi.length < values.length) {
+                rsi.unshift(null);
+            }
+            
+            return rsi;
+        }
+        
+        // Fetch candlestick data
+        async function fetchData() {
+            try {
+                const binInterval = intervalTime.replace('m', '');
+                const url = `https://api.binance.com/api/v3/klines?symbol=${selectedCoin}&interval=${intervalTime}&limit=100`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                currentCandles = data.map(d => ({
+                    time: d[0] / 1000,
+                    open: parseFloat(d[1]),
+                    high: parseFloat(d[2]),
+                    low: parseFloat(d[3]),
+                    close: parseFloat(d[4]),
+                    volume: parseFloat(d[5])
+                }));
+                
+                candleSeries.setData(currentCandles);
+                
+                // Prepare volume data
+                const volumeData = currentCandles.map(candle => ({
+                    time: candle.time,
+                    value: candle.volume,
+                    color: candle.close >= candle.open ? 'rgba(0, 255, 140, 0.5)' : 'rgba(255, 85, 85, 0.5)',
+                }));
+                
+                volumeSeries.setData(volumeData);
+                
+                // Calculate indicators
+                const closes = currentCandles.map(c => c.close);
+                const ema20 = calculateEMA(closes, 20);
+                const rsi = calculateRSI(closes);
+                
+                // Update indicator values
+                if (closes.length > 0) {
+                    const lastClose = closes[closes.length - 1];
+                    const lastEma = ema20[ema20.length - 1];
+                    const lastRsi = rsi[rsi.length - 1];
+                    const lastVolume = currentCandles[currentCandles.length - 1].volume;
+                    
+                    emaValue.textContent = lastEma ? lastEma.toFixed(4) : '--';
+                    rsiValue.textContent = lastRsi ? lastRsi.toFixed(2) : '--';
+                    volumeValue.textContent = formatVolume(lastVolume);
+                    
+                    // EMA data for chart
+                    const emaData = currentCandles.map((candle, i) => ({
+                        time: candle.time,
+                        value: ema20[i] || null,
+                    }));
+                    
+                    emaSeries.setData(emaData);
+                    
+                    // Generate signals
+                    const buySignals = [];
+                    const sellSignals = [];
+                    
+                    for (let i = 20; i < closes.length; i++) {
+                        if (!ema20[i] || !rsi[i]) continue;
+                        
+                        if (closes[i] > ema20[i] && rsi[i] < 30) {
+                            buySignals.push({ 
+                                time: currentCandles[i].time, 
+                                value: currentCandles[i].low, 
+                                shape: 'arrowUp' 
+                            });
+                            
+                            // Add alert for the latest signal
+                            if (i === closes.length - 1) {
+                                addAlert('buy', `${selectedCoin} - BUY Signal: Price above EMA20 and RSI is oversold at ${rsi[i].toFixed(2)}`);
+                            }
+                        }
+                        
+                        if (closes[i] < ema20[i] && rsi[i] > 70) {
+                            sellSignals.push({ 
+                                time: currentCandles[i].time, 
+                                value: currentCandles[i].high, 
+                                shape: 'arrowDown' 
+                            });
+                            
+                            // Add alert for the latest signal
+                            if (i === closes.length - 1) {
+                                addAlert('sell', `${selectedCoin} - SELL Signal: Price below EMA20 and RSI is overbought at ${rsi[i].toFixed(2)}`);
+                            }
+                        }
+                    }
+                    
+                    buySeries.setData(buySignals);
+                    sellSeries.setData(sellSignals);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+        
+        function formatVolume(volume) {
+            if (volume >= 1000000) {
+                return (volume / 1000000).toFixed(2) + 'M';
+            } else if (volume >= 1000) {
+                return (volume / 1000).toFixed(2) + 'K';
+            }
+            return volume.toFixed(2);
+        }
+        
+        function addAlert(type, message) {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            
+            // Add to alerts array (keep only last 10)
+            alerts.unshift({ type, message, time: timeString });
+            if (alerts.length > 10) alerts.pop();
+            
+            // Update alerts list
+            alertsList.innerHTML = '';
+            alerts.forEach(alert => {
+                const alertElement = document.createElement('div');
+                alertElement.className = `alert ${alert.type}`;
+                alertElement.innerHTML = `
+                    <div class="alert-content">
+                        <div class="alert-message">
+                            <span class="signal-dot ${alert.type}"></span>
+                            ${alert.message}
+                        </div>
+                        <div class="alert-time">${alert.time}</div>
+                    </div>
+                `;
+                alertsList.appendChild(alertElement);
+            });
+            
+            // Also show browser alert for WebView
+            if (alerts.length === 1) {
+                alert(`${type.toUpperCase()} Signal: ${message}`);
+            }
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', function() {
+            initChart();
+            fetchTopCoins();
+            
+            // Set up periodic data refresh (every 60 seconds)
+            setInterval(fetchData, 60000);
+        });
+        
+        // Make chart responsive
+        window.addEventListener('resize', function() {
+            if (chart) {
+                const chartContainer = document.getElementById('chart');
+                chart.applyOptions({ 
+                    width: chartContainer.clientWidth,
+                });
+            }
+        });
+    </script>
 </body>
 </html>
