@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Crypto Signals Dashboard</title>
+  <style>
+    body { font-family: Arial; margin: 0; padding: 0; background: #1e1e1e; color: #fff; }
+    #controls { padding: 10px; text-align: center; background: #111; }
+    button { margin: 0 5px; padding: 5px 10px; }
+    #chart { width: 100%; height: 600px; }
+    #coin-select { padding: 5px; }
+  </style>
+</head>
+<body>
+
+<div id="controls">
+  Interval:
+  <button onclick="setIntervalTime('5m')">5m</button>
+  <button onclick="setIntervalTime('15m')">15m</button>
+  <button onclick="setIntervalTime('30m')">30m</button>
+  Select Coin:
+  <select id="coin-select" onchange="changeCoin(this.value)"></select>
+</div>
+<div id="chart"></div>
+
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+  const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+    width: window.innerWidth,
+    height: 600,
+    layout: { backgroundColor: '#1e1e1e', textColor: '#fff' },
+    grid: { vertLines: { color: '#333' }, horzLines: { color: '#333' } },
+    rightPriceScale: { borderColor: '#555' },
+    timeScale: { borderColor: '#555' }
+  });
+
+  const candleSeries = chart.addCandlestickSeries();
+  const buySellSeries = chart.addScatterSeries({ color: 'red', shape: 'arrowUp' });
+
+  let coins = [];
+  let selectedCoin = '';
+  let intervalTime = '5m';
+
+  // Fetch top 20 coins from Binance
+  async function fetchTopCoins() {
+    const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+    const data = await res.json();
+    const top = data.sort((a,b)=>parseFloat(b.quoteVolume)-parseFloat(a.quoteVolume)).slice(0,20);
+    coins = top.map(c => c.symbol);
+    const select = document.getElementById('coin-select');
+    select.innerHTML = coins.map(c => `<option value="${c}">${c}</option>`).join('');
+    selectedCoin = coins[0];
+    fetchData();
+  }
+
+  function setIntervalTime(interval) {
+    intervalTime = interval;
+    fetchData();
+  }
+
+  function changeCoin(coin) {
+    selectedCoin = coin;
+    fetchData();
+  }
+
+  // Utility functions for indicators
+  function calculateEMA(values, period) {
+    let k = 2/(period+1);
+    let ema = [values[0]];
+    for(let i=1;i<values.length;i++){
+      ema.push(values[i]*k + ema[i-1]*(1-k));
+    }
+    return ema;
+  }
+
+  function calculateRSI(values, period=14){
+    let deltas = [];
+    for(let i=1;i<values.length;i++) deltas.push(values[i]-values[i-1]);
+    let seed = deltas.slice(0,period);
+    let up = seed.filter(v=>v>0).reduce((a,b)=>a+b,0)/period;
+    let down = -seed.filter(v=>v<0).reduce((a,b)=>a+b,0)/period;
+    let rs = up/down;
+    let rsi = [100-(100/(1+rs))];
+    for(let i=period;i<deltas.length;i++){
+      let delta = deltas[i];
+      up = (up*(period-1)+Math.max(delta,0))/period;
+      down = (down*(period-1)+Math.max(-delta,0))/period;
+      rs = up/down;
+      rsi.push(100-(100/(1+rs)));
+    }
+    while(rsi.length<values.length) rsi.unshift(rsi[0]);
+    return rsi;
+  }
+
+  // Fetch candlestick data
+  async function fetchData() {
+    const binInterval = intervalTime.replace('m','');
+    const url = `https://api.binance.com/api/v3/klines?symbol=${selectedCoin}&interval=${intervalTime}&limit=100`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const candles = data.map(d=>({
+      time: d[0]/1000,
+      open: parseFloat(d[1]),
+      high: parseFloat(d[2]),
+      low: parseFloat(d[3]),
+      close: parseFloat(d[4]),
+      volume: parseFloat(d[5])
+    }));
+
+    candleSeries.setData(candles);
+
+    // Indicators
+    const closes = candles.map(c=>c.close);
+    const ema20 = calculateEMA(closes, 20);
+    const rsi = calculateRSI(closes);
+    const signals = [];
+    for(let i=1;i<closes.length;i++){
+      if(closes[i] > ema20[i] && rsi[i]<30) signals.push({ time: candles[i].time, value: candles[i].low, shape:'arrowUp', color:'lime' });
+      if(closes[i] < ema20[i] && rsi[i]>70) signals.push({ time: candles[i].time, value: candles[i].high, shape:'arrowDown', color:'red' });
+    }
+    buySellSeries.setData(signals);
+  }
+
+  fetchTopCoins();
+
+  window.addEventListener('resize', () => chart.applyOptions({ width: window.innerWidth }));
+</script>
+</body>
+</html>
